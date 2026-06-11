@@ -1,0 +1,28 @@
+name = "ibkr-gateway"
+main = "src/index.ts"
+
+[observability]
+enabled = true
+
+[[kv_namespaces]]
+binding = "MY_KV"
+
+[[durable_objects.bindings]]
+name = "IBKRDO"
+class_name = "ibkrDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = [ "ibkrDO" ]
+
+[vars]
+consumerKey = ""
+accessToken = ""
+accessTokenSecret = ""
+dhParam = ""
+encryptionKey = ""
+signatureKey = ""
+baseHost = ""
+authUser = ""
+authPwd = ""
+JWT_SECRET = ""
