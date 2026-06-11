@@ -10,7 +10,6 @@ export async function ibkrFetch(
 
     if (lst === null) {
         await auth(c);
-        await init(c);
         lst = await c.env.MY_KV.get("lst");
         if (lst === null) {
             throw new Error("no Find the LST");
