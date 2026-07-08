@@ -1,7 +1,15 @@
 import { DurableObject } from "cloudflare:workers";
 import { acquireLiveSessionToken, getStandardAuthHeader } from "./ibkr"
 
+const corsHeaders = {
+	"Access-Control-Allow-Origin": "*",
+	"Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+	"Access-Control-Allow-Headers": "*",
+	"Access-Control-Expose-Headers": "*",
+};
+
 let baseurl = 'https://api.ibkr.com'
+
 export class MyDurableObject extends DurableObject<Env> {
 	private sessionCache: Map<string, any> = new Map();
 	constructor(ctx: DurableObjectState, env: Env) {
@@ -9,15 +17,6 @@ export class MyDurableObject extends DurableObject<Env> {
 	}
 
 	async fetch(request: Request) {
-		if (request.method === "OPTIONS") {
-			return new Response(null, {
-				headers: {
-					"Access-Control-Allow-Origin": "*",
-					"Access-Control-Allow-Methods": "GET, POST, OPTIONS, DELETE",
-					"Access-Control-Allow-Headers": "*",
-				}
-			});
-		}
 		if (request.headers.get("Upgrade") === "websocket") {
 			return this.handleWS();
 		}
@@ -26,7 +25,7 @@ export class MyDurableObject extends DurableObject<Env> {
 		const { pathname, search } = new URL(request.url);
 
 		if (pathname === "/oauth") {
-			const o = await this.IB_Oauth(baseurl)
+			const o = await this.IB_Oauth()
 			return new Response(JSON.stringify(o), { status: 200, headers: { "Content-Type": "application/json" } });
 		}
 
@@ -34,7 +33,7 @@ export class MyDurableObject extends DurableObject<Env> {
 		for (let i = 0; i < 3; i++) {
 			if (lst) break;
 			console.log(`try ${i + 1} ...`);
-			await this.IB_Oauth(baseurl);
+			await this.IB_Oauth();
 			lst = await this.env.MY_KV.get('lst');
 		}
 		if (!lst) {
@@ -118,8 +117,25 @@ export class MyDurableObject extends DurableObject<Env> {
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
+		if (request.method === "OPTIONS") {
+			return new Response(null, {
+				status: 204,
+				headers: corsHeaders
+			});
+		}
 		const id = env.MY_DURABLE_OBJECT.idFromName("ibkr-web-api");
 		const stub = env.MY_DURABLE_OBJECT.get(id);
-		return await stub.fetch(request);
+		let response = await stub.fetch(request);
+
+		if (response.status === 101) {
+			return response;
+		}
+
+		response = new Response(response.body, response);
+		for (const [key, value] of Object.entries(corsHeaders)) {
+			response.headers.set(key, value);
+		}
+
+		return response;
 	},
 } satisfies ExportedHandler<Env>;
