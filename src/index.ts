@@ -1,13 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import { acquireLiveSessionToken, getStandardAuthHeader } from "./ibkr"
 
-const corsHeaders = {
-	"Access-Control-Allow-Origin": "*",
-	"Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-	"Access-Control-Allow-Headers": "*",
-	"Access-Control-Expose-Headers": "*",
-};
-
 let baseurl = 'https://api.ibkr.com'
 
 export class MyDurableObject extends DurableObject<Env> {
@@ -117,25 +110,8 @@ export class MyDurableObject extends DurableObject<Env> {
 
 export default {
 	async fetch(request, env, ctx): Promise<Response> {
-		if (request.method === "OPTIONS") {
-			return new Response(null, {
-				status: 204,
-				headers: corsHeaders
-			});
-		}
 		const id = env.MY_DURABLE_OBJECT.idFromName("ibkr-web-api");
 		const stub = env.MY_DURABLE_OBJECT.get(id);
-		let response = await stub.fetch(request);
-
-		if (response.status === 101) {
-			return response;
-		}
-
-		response = new Response(response.body, response);
-		for (const [key, value] of Object.entries(corsHeaders)) {
-			response.headers.set(key, value);
-		}
-
-		return response;
+		return await stub.fetch(request);
 	},
 } satisfies ExportedHandler<Env>;
