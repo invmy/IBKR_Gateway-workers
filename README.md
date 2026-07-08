@@ -37,7 +37,13 @@ headers，你只需像阅读官方文档一样，专注于业务参数即可。
 Trust Access Controls** 进行访问控制。
 
 - 🖥️ **网页端**: 用户可以通过友好的邮箱验证码登录。
-- 🤖 **终端/API端**: 程序和脚本交互可直接使用 Service Credentials (服务凭证)。
+
+![Email OTP](image-1.png)
+
+- 🤖 **终端/API端**: 程序和脚本交互可直接使用 Service Credentials
+  (服务凭证)Service Tokens。
+
+![Any Access Service Token](image.png)
 
 完美兼顾了人类用户和程序的访问需求，安全又省心！🛡️
 
@@ -80,7 +86,9 @@ IBKR 的判断非常活跃，你必须大概一分钟就需要进行一次 `PING
 
 ---
 
----
+# CORS
+
+## ![alt text](image-2.png)
 
 ## 🇬🇧 English Documentation
 
@@ -118,11 +126,14 @@ authentication logic. Instead, it relies entirely on **Cloudflare Zero Trust
 Access Controls**.
 
 - 🖥️ **Web Users**: Can log in seamlessly using friendly Email OTP.
-- 🤖 **Terminal/API**: Programmatic interactions can directly use Service
-  Credentials.
 
-Perfectly balancing the access needs of both humans and machines, keeping it
-secure and hassle-free! 🛡️
+![Email OTP](image-1.png)
+
+- 🤖 **Terminal/API**: Programmatic interactions can directly use Service
+  Credentials. (Service Tokens)
+
+![Any Access Service Token](image.png) Perfectly balancing the access needs of
+both humans and machines, keeping it secure and hassle-free! 🛡️
 
 ### 🚀 How to Get Started?
 
