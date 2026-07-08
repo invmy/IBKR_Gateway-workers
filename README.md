@@ -67,9 +67,9 @@ Trust Access Controls** 进行访问控制。
 - 🔑 `accessToken`
 - 🔑 `accessTokenSecret`
 - 🔑 `consumerKey`
-- 🔑 `dhParam`
-- 🛡️ `encryptionKey` _(必须是 Private Key)_
-- 🛡️ `signatureKey` _(必须是 Private Key)_
+- 🔑 `dhParam` (pem)
+- 🛡️ `encryptionKey` _(必须是 Private Key pem)_
+- 🛡️ `signatureKey` _(必须是 Private Key pem)_
 
 ## 保持活跃
 
@@ -157,9 +157,9 @@ string formats are supported! Additionally, both `encryptionKey` and
 - 🔑 `accessToken`
 - 🔑 `accessTokenSecret`
 - 🔑 `consumerKey`
-- 🔑 `dhParam`
-- 🛡️ `encryptionKey` _(Must be Private Key)_
-- 🛡️ `signatureKey` _(Must be Private Key)_
+- 🔑 `dhParam` (pem)
+- 🛡️ `encryptionKey` _(Must be Private Key pem)_
+- 🛡️ `signatureKey` _(Must be Private Key pem)_
 
 ## Stay Active
 
