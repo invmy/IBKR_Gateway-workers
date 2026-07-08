@@ -2,39 +2,68 @@
 <html>
 
 <body>
-    <h1>WebSocket </h1>
-    <input type="text" id="msg" placeholder="send command">
-    <button onclick="send()">send</button>
+    <h1>WebSocket Test</h1>
+    <input type="text" id="msg" placeholder="Enter message">
+    <button onclick="send()">Send</button>
     <div id="log"></div>
 
     <script>
-        const ws = new WebSocket('/ws/');
-        ws.binaryType = "arraybuffer";
-        ws.onopen = () => log("CONNECTED");
-        ws.onmessage = (e) => {
-            if (e.data instanceof ArrayBuffer) {
-                const decoder = new TextDecoder("utf-8");
-                const text = decoder.decode(e.data);
+        let ws;
 
-                try {
-                    const json = JSON.parse(text);
-                    log("JSON message: " + JSON.stringify(json, null, 2));
-                } catch (err) {
-                    log("arraybuffer message: " + text);
+        try {
+            ws = new WebSocket("/wswwswsw");// any string
+            ws.binaryType = "arraybuffer";
+
+            ws.onopen = () => {
+                log("<span style='color: green;'>✔ Connection successfully established!</span>");
+            };
+
+            ws.onmessage = (e) => {
+                if (e.data instanceof ArrayBuffer) {
+                    const decoder = new TextDecoder("utf-8");
+                    const text = decoder.decode(e.data);
+                    try {
+                        const json = JSON.parse(text);
+                        log("Received JSON message: " + JSON.stringify(json, null, 2));
+                    } catch (err) {
+                        log("Received raw binary text: " + text);
+                    }
+                } else {
+                    log("Received plain text message: " + e.data);
                 }
-            } else {
-                log("GET : " + e.data);
-            }
-        };
+            };
+
+            ws.onerror = (error) => {
+                console.error("WebSocket error details:", error);
+                log("<span style='color: red; font-weight: bold;'>❌ WebSocket error occurred! It might be blocked by Cloudflare or CORS.</span>");
+            };
+
+            ws.onclose = (event) => {
+                console.warn("WebSocket close details:", event);
+                log(`<span style='color: orange;'>⚠ Connection closed. Code: ${event.code}, Reason: ${event.reason || 'None'}</span>`);
+            };
+
+        } catch (criticalError) {
+            log("<span style='color: red; font-weight: bold;'>💥 Critical runtime error: " + criticalError.message + "</span>");
+        }
 
         function send() {
             const input = document.getElementById("msg");
-            ws.send(input.value);
-            log("SEND: " + input.value);
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(input.value);
+                log("Sent: " + input.value);
+            } else {
+                log("<span style='color: red;'>Cannot send: Not connected!</span>");
+            }
         }
 
         function log(msg) {
-            document.getElementById("log").innerHTML += "<p>" + msg + "</p>";
+            const logDiv = document.getElementById("log");
+            if (logDiv) {
+                logDiv.innerHTML += "<p style='font-family: monospace; border-bottom: 1px solid #eee; padding: 4px 0;'>" + msg + "</p>";
+            } else {
+                console.log("Log: " + msg);
+            }
         }
     </script>
 </body>
