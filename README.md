@@ -1,92 +1,168 @@
-# IBKR Web API Gateway For Cloudflare Workers
+# 🚀 IBKR Web API Gateway For Cloudflare Workers 🌐
+
 [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/invmy/IBKR_Gateway-workers)
 
-Authentication uses Basic Authentication combined with a JWT token. Designed for use with browsers and APIs.
+[🇨🇳 中文说明](#-中文说明) | [🇬🇧 English Documentation](#-english-documentation)
 
+---
 
-## Obtain a JWT token
+## 🇨🇳 中文说明
 
-run the `/api/get-token` endpoint
+超级简单部署和使用的边缘计算版本 IBKR Web API 网关。
 
-The request requires an Authorisation header to be set
+本项目利用 Cloudflare Durable Objects 来确保单一实例运行，并通过官方最新的
+OpenAPI JSON 实现了优雅的 Scalar 文档。
 
-`Authorisation: Bearer your-jwt-token`
+### 🛠️ 核心功能
 
-## Basic Usage
-The auth, init, and tickle methods are predefined.
-If LST does not exist, run the `/api/auth` endpoint first. If you need full access, you must run the `/api/init` endpoint.
+#### 📡 API 转发
 
-You must run the `/api/tickle`and`/api/tic` endpoints at least once every minute to keep the session active.
+**纯透明管道转发**：自动处理 HTTP
+headers，你只需像阅读官方文档一样，专注于业务参数即可。
 
+在访问/iserver
+等端点前，你必须初始化会话进入完全访问模式。`/iserver/auth/ssodh/init`
 
-## Proxy for IBKR API requests
+> ⚠️ **注意**: 如果 KV 缓存未过期或 LST 提前失效，请主动调用 `/oauth` 端点刷新
+> LST，以防止出现错误的 `401 Unauthorized` 报错。
 
-The `/api/ib/*` endpoints have been configured; you can enter any link after this.
+#### 🔌 WebSocket 桥接
 
-```bash
-#Example
-/api/ib/v1/api/iserver/marketdata/snapshot?conids=265598,8314&fields=31,84,86
-```
+**纯透明管道桥接**：不做任何中间处理，数据直接透传。 🔗 _测试 Demo_:
+请查看源码目录下的 `public/ws.html` 了解如何建立连接。
 
-## TCP ping
-Use tcpping to measure the TCP latency between Workers and api.ibkr.com
+### 🔐 身份验证
 
-run the `/tcpping` endpoint
+**零负担安全控制！** 本项目不手动编写鉴权逻辑，而是完全依赖 **Cloudflare Zero
+Trust Access Controls** 进行访问控制。
 
-Supports configuration parameters such as `/tcpping?host=ibkr.com&port=443`
+- 🖥️ **网页端**: 用户可以通过友好的邮箱验证码登录。
+- 🤖 **终端/API端**: 程序和脚本交互可直接使用 Service Credentials (服务凭证)。
 
-## Websocket Usage
+完美兼顾了人类用户和程序的访问需求，安全又省心！🛡️
 
-We used Cloudflare's Durable Objects to connect to IBKR's WS server and utilized the SSE push service.
+### 🚀 如何开始？
 
-#### send command
+#### 1️⃣ 生成证书
 
-Send a POST request to the /api/command endpoint with the Body content:
+你需要先生成一套 `OAuth 1.0` 必备的证书文件。详细步骤请参考这篇出色的指南： 👉
+[IBKR OAuth1.0a 证书生成指南](https://github.com/Voyz/ibind/wiki/OAuth-1.0a)
 
-```json
-// action: sub or unsub
-// channel: channel name
-// symbol: Parameters
-{
-  "action":"sub",
-  "channel":"quotes",
-  "symbol":"852103012"
-}
-```
-If you need to customise the content you receive or define command operations, please modify the `ProtocolDictionary`
+#### 2️⃣ 配置环境变量
 
-#### Receive push 
+在 Cloudflare Workers 网页的设置中，将证书和 Token 添加到变量绑定中。
 
-Use `/api/command` to retrieve received messages; supports the SSE messaging service
+**⚠️ 重要提醒**: 必须使用 **“Secret (加密密钥/机密)”**
+类型，这样才能支持多行字符串格式！ 此外，`encryptionKey` 和 `signatureKey`
+都必须是 **Private Key (私钥)**，千万不要填成了公钥。
 
-```bash
-#/api/command?channel=channelname
-/api/command?channel=quotes
-```
+**需要绑定的变量列表:**
 
-Define in `channelMap` which channel a specific command topic should be sent to
+- 🔑 `accessToken`
+- 🔑 `accessTokenSecret`
+- 🔑 `consumerKey`
+- 🔑 `dhParam`
+- 🛡️ `encryptionKey` _(必须是 Private Key)_
+- 🛡️ `signatureKey` _(必须是 Private Key)_
 
-## Vars
+## 保持活跃
 
-### basic
+IBKR 的判断非常活跃，你必须大概一分钟就需要进行一次 `PING`
+来保持完全访问。否则自动进入只读模式。
 
-- baseHost : `api.ibkr.com`
-- authUser : Enter the account 
-- authPwd : Enter the password
-- JWT_SECRET: A random JWT signing key,Any string, excluding special characters
+### http 端点
 
-### [IBKR OAuth1.0a](https://github.com/Voyz/ibind/wiki/OAuth-1.0a)
+`/v1/api/tickle`
 
-- consumerKey
-- accessToken
-- accessTokenSecret
+### WS 命令
 
-You need to use a single command to compress the original PEM file into a single line, rather than multiple lines.
+`tic`
 
-Linux / macOS：`sed '/-----/d' key.pem | tr -d '\n'`
+---
 
-Windows PowerShell：`(Get-Content key.pem -Raw) -replace '-----.*?-----' -replace '\r?\n' -replace '\s+',''`
+---
 
-- dhParam
-- encryptionKey
-- signatureKey
+## 🇬🇧 English Documentation
+
+A super simple-to-deploy-and-use edge computing version of the IBKR Web API
+Gateway.
+
+This project utilizes Cloudflare Durable Objects to ensure a single instance
+runs globally, and implements elegant Scalar documentation using the latest
+official OpenAPI JSON.
+
+### 🛠️ Core Features
+
+#### 📡 API Forwarding
+
+**Transparent Pipe Forwarding**: Automatically handles HTTP headers. Just focus
+on your business parameters, exactly as the official docs suggest.
+
+Before accessing endpoints such as /iserver, you must initialize the session to
+enter full access mode. `/iserver/auth/ssodh/init`
+
+> ⚠️ **Note**: If the KV cache has not expired or the LST becomes invalid early,
+> please manually call the `/oauth` endpoint to refresh the LST and prevent
+> false `401 Unauthorized` errors.
+
+#### 🔌 WebSocket Bridging
+
+**Transparent Bridge**: No middleware processing, direct data pass-through. 🔗
+_Test Demo_: Check out `public/ws.html` in the source code to see how to
+establish a connection.
+
+### 🔐 Authentication
+
+**Zero-burden security!** This project does not manually implement
+authentication logic. Instead, it relies entirely on **Cloudflare Zero Trust
+Access Controls**.
+
+- 🖥️ **Web Users**: Can log in seamlessly using friendly Email OTP.
+- 🤖 **Terminal/API**: Programmatic interactions can directly use Service
+  Credentials.
+
+Perfectly balancing the access needs of both humans and machines, keeping it
+secure and hassle-free! 🛡️
+
+### 🚀 How to Get Started?
+
+#### 1️⃣ Generate Certificates
+
+First, you need to generate a set of necessary certificate files for
+`OAuth 1.0`. For detailed steps, please refer to this excellent guide: 👉
+[IBKR OAuth1.0a Guide by Voyz](https://github.com/Voyz/ibind/wiki/OAuth-1.0a)
+
+#### 2️⃣ Configure Environment Variables
+
+In your Cloudflare Workers settings add the certificates and tokens to your
+variable bindings.
+
+**⚠️ IMPORTANT**: You MUST use the **"Secret"** variable type so that multi-line
+string formats are supported! Additionally, both `encryptionKey` and
+`signatureKey` must be **Private Keys**, do not use public keys.
+
+**Required Variables:**
+
+- 🔑 `accessToken`
+- 🔑 `accessTokenSecret`
+- 🔑 `consumerKey`
+- 🔑 `dhParam`
+- 🛡️ `encryptionKey` _(Must be Private Key)_
+- 🛡️ `signatureKey` _(Must be Private Key)_
+
+## Stay Active
+
+IBKR is very active, so you must send a `PING` approximately once a minute to
+maintain full access. Otherwise, it will automatically switch to read-only mode.
+
+### HTTP Endpoint
+
+`/v1/api/tickle`
+
+### WS Command
+
+`tic`
+
+---
+
+_Happy Trading & Coding! 📈✨_

@@ -1,28 +1,23 @@
 name = "ibkr-gateway"
 main = "src/index.ts"
+compatibility_date = "2026-07-08"
+compatibility_flags = ["nodejs_compat"]
+upload_source_maps = true
 
 [observability]
 enabled = true
 
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["MyDurableObject"]
+
+[[durable_objects.bindings]]
+name = "MY_DURABLE_OBJECT"
+class_name = "MyDurableObject"
+
 [[kv_namespaces]]
 binding = "MY_KV"
 
-[[durable_objects.bindings]]
-name = "IBKRDO"
-class_name = "ibkrDO"
-
-[[migrations]]
-tag = "v1"
-new_sqlite_classes = [ "ibkrDO" ]
-
-[vars]
-consumerKey = ""
-accessToken = ""
-accessTokenSecret = ""
-dhParam = ""
-encryptionKey = ""
-signatureKey = ""
-baseHost = ""
-authUser = ""
-authPwd = ""
-JWT_SECRET = ""
+[assets]
+directory = "./public/"
+binding = "ASSETS"

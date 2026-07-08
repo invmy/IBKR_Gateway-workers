@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+    <h1>WebSocket </h1>
+    <input type="text" id="msg" placeholder="send command">
+    <button onclick="send()">send</button>
+    <div id="log"></div>
+
+    <script>
+        const ws = new WebSocket('/ws/');
+        ws.binaryType = "arraybuffer";
+        ws.onopen = () => log("CONNECTED");
+        ws.onmessage = (e) => {
+            if (e.data instanceof ArrayBuffer) {
+                const decoder = new TextDecoder("utf-8");
+                const text = decoder.decode(e.data);
+
+                try {
+                    const json = JSON.parse(text);
+                    log("JSON message: " + JSON.stringify(json, null, 2));
+                } catch (err) {
+                    log("arraybuffer message: " + text);
+                }
+            } else {
+                log("GET : " + e.data);
+            }
+        };
+
+        function send() {
+            const input = document.getElementById("msg");
+            ws.send(input.value);
+            log("SEND: " + input.value);
+        }
+
+        function log(msg) {
+            document.getElementById("log").innerHTML += "<p>" + msg + "</p>";
+        }
+    </script>
+</body>
+
+</html>

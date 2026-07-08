@@ -1,67 +1,3 @@
-import { Context } from "hono";
-
-export async function ibkrFetch(
-    c: Context,
-    method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH",
-    path: string,
-    body?: any,
-) {
-    let lst = await c.env.MY_KV.get("lst");
-
-    if (lst === null) {
-        await auth(c);
-        lst = await c.env.MY_KV.get("lst");
-        if (lst === null) {
-            throw new Error("no Find the LST");
-        }
-    }
-
-    const url = `https://${c.env.baseHost}${path}`;
-
-    const oauthSignatureStr = await getStandardAuthHeader(
-        method, url, c.env.consumerKey, c.env.accessToken, lst, "limited_poa"
-    );
-
-    let serializedBody: string | undefined = undefined;
-    let contentLength: number | undefined = undefined;
-
-    if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-        serializedBody = JSON.stringify(body);
-        contentLength = new TextEncoder().encode(serializedBody).length;
-    }
-    const headers: Record<string, string> = {
-        'Authorization': oauthSignatureStr,
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip,deflate',
-        'Connection': 'keep-alive',
-        'User-Agent': 'Mozilla/5.0 (Hono/Edge)',
-    };
-    if (serializedBody !== undefined && contentLength !== undefined) {
-        headers['Content-Type'] = 'application/json';
-        headers['Content-Length'] = String(contentLength);
-    }
-    const options: RequestInit = {
-        method,
-        headers,
-    };
-    if (serializedBody !== undefined) {
-        options.body = serializedBody;
-    }
-    const response = await fetch(url, options);
-    const text = await response.text();
-    if (!response.ok) {
-        console.error(`IBKR API Error: ${response.status} - ${text} - ${path}`);
-    }
-
-    try {
-        return text ? JSON.parse(text) : null;
-    } catch {
-        return text;
-    }
-}
-
-
-
 interface IBKRCredentials {
     consumerKey: string;
     accessToken: string;
@@ -69,7 +5,6 @@ interface IBKRCredentials {
     encryptionKeyPem: string;
     signatureKeyPem: string;
     dhParamPem: string;
-    baseHost?: string;
 }
 
 /**
@@ -102,7 +37,7 @@ export async function acquireLiveSessionToken(creds: IBKRCredentials): Promise<{
         oauth_token: creds.accessToken,
         diffie_hellman_challenge: dhChallenge,
     };
-    const lstUrl = `https://${creds.baseHost}/v1/api/oauth/live_session_token`;
+    const lstUrl = `https://api.ibkr.com/v1/api/oauth/live_session_token`;
     const lstSortedParams = Object.keys(lstParams).sort().map((k) => `${k}=${lstParams[k]}`).join("&");
     const lstBaseString = `${prepend}POST&${encodeURIComponent(lstUrl)}&${encodeURIComponent(lstSortedParams)}`;
 
@@ -272,9 +207,7 @@ async function rawRsaDecrypt(ciphertextBase64: string, pem: string): Promise<Uin
     return hexToU8(mHex);
 }
 async function hmacSign(hashType: "SHA-1" | "SHA-256", keyU8: Uint8Array, dataU8: Uint8Array): Promise<Uint8Array> {
-    //@ts-ignore
     const cryptoKey = await crypto.subtle.importKey("raw", keyU8, { name: "HMAC", hash: hashType }, false, ["sign"]);
-    //@ts-ignore
     const sig = await crypto.subtle.sign("HMAC", cryptoKey, dataU8);
     return new Uint8Array(sig);
 }
@@ -318,52 +251,3 @@ export async function getStandardAuthHeader(
         `, realm="${rfc3986Encode(realm)}"`
     );
 }
-
-function restoreToStandardPem(flatString: string, type: "PRIVATE KEY" | "PUBLIC KEY" | "CERTIFICATE" | "DH PARAMETERS" = "PRIVATE KEY"): string {
-    const r = new RegExp('.{1,64}', 'g');
-    const lines = flatString.match(r);
-    const formattedBody = lines ? lines.join('\n') : flatString;
-    return `-----BEGIN ${type}-----\n${formattedBody}\n-----END ${type}-----`;
-}
-
-//routes
-
-export async function auth(c: Context) {
-    const dhParamPem = restoreToStandardPem(c.env.dhParam, "DH PARAMETERS")
-    const encryptionKeyPem = restoreToStandardPem(c.env.encryptionKey, "PRIVATE KEY")
-    const signatureKeyPem = restoreToStandardPem(c.env.signatureKey, "PRIVATE KEY")
-    const creds = {
-        consumerKey: c.env.consumerKey,
-        accessToken: c.env.accessToken,
-        accessTokenSecret: c.env.accessTokenSecret,
-        baseHost: c.env.baseHost,
-        dhParamPem,
-        encryptionKeyPem,
-        signatureKeyPem
-    }
-    try {
-        const { lst, expiration } = await acquireLiveSessionToken(creds as any)
-        try {
-            await c.env.MY_KV.put("lst", lst, {
-                expiration: Math.floor(expiration / 1000)
-            });
-        } catch (err) {
-            return c.json({ r: err, m: 'Auth error! cant save for LST' }, 500);
-        }
-
-        return c.json({ r: 'ok', expiration: new Date(expiration) });
-    } catch (err) {
-        return c.json({ r: err }, 500);
-    }
-
-}
-
-export async function init(c: Context) {
-    const body = {
-        publish: true,
-        compete: true,
-    };
-    const result = await ibkrFetch(c, 'POST', '/v1/api/iserver/auth/ssodh/init', body);
-    return c.json(result);
-}
-
