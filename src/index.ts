@@ -44,6 +44,13 @@ export class MyDurableObject extends DurableObject<Env> {
 
 		const newHeaders = new Headers(response.headers);
 		newHeaders.delete("Content-Length");
+		newHeaders.set("Access-Control-Allow-Origin", "*");
+		newHeaders.set("Access-Control-Allow-Methods", "GET, POST, OPTIONS, PUT, DELETE");
+		newHeaders.set("Access-Control-Allow-Headers", "*");
+		newHeaders.set("Access-Control-Expose-Headers", "*");
+		newHeaders.delete("content-security-policy");
+		newHeaders.delete("x-frame-options");
+		newHeaders.delete("referrer-policy");
 
 		if (pathname === '/v1/api/tickle') {
 			const resClone = response.clone();
